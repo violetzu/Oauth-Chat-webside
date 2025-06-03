@@ -129,7 +129,7 @@ function broadcastMessage(message) {
 // Ollama AI 回應函式
 async function handleCommand(command, ws, username) {
   // 5.1 廣播使用者的原始 /ai 指令
-  const userCmd = { type: 'chat', payload: { from: username, text: `/${command}` } };
+  const userCmd = { type: 'chat', payload: { from: username, text: `${command}` } };
   broadcastMessage(JSON.stringify(userCmd));
   appendChatLog(userCmd); // 寫入檔案
 
