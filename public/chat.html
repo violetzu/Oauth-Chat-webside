@@ -1,9 +1,8 @@
-<!-- public/chat.html -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>共用聊天室</title>
+  <title>Oauth聊天室</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -35,27 +34,42 @@
       font-size: 16px;
       cursor: pointer;
     }
-    .message {
+    .message, .notification, .welcome {
       margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+    }
+    .message img, .welcome img {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      margin-right: 8px;
     }
     .message .from {
       font-weight: bold;
+      margin-right: 4px;
     }
     .notification {
       color: #888;
       font-style: italic;
-      margin-bottom: 8px;
+    }
+    .welcome {
+      font-style: italic;
+      color: #555;
     }
   </style>
 </head>
 <body>
-  <div id="chat-container"></div>
+  <div id="chat-container">
+    <!-- 這裡會顯示歡迎訊息、系統通知與聊天訊息 -->
+  </div>
   <div id="input-container">
     <input id="msg-input" type="text" placeholder="輸入訊息..." autocomplete="off" />
     <button id="send-btn">傳送</button>
   </div>
 
   <script>
+    // 讀取 URL 參數
     function getQueryParam(name) {
       const urlParams = new URLSearchParams(window.location.search);
       return urlParams.get(name);
@@ -66,7 +80,7 @@
       window.location.href = '/login.html';
     }
 
-    // 用 wss:// 協定
+    // 建立 WebSocket 連線 (wss://)
     const ws = new WebSocket(`wss://${window.location.host}?token=${token}`);
 
     const chatContainer = document.getElementById('chat-container');
@@ -81,16 +95,17 @@
       let msgObj;
       try {
         msgObj = JSON.parse(event.data);
-      } catch (e) {
+      } catch {
         console.error('無法解析訊息', event.data);
         return;
       }
+
       if (msgObj.type === 'welcome') {
-        appendNotification(`系統：歡迎 ${msgObj.payload.name} 加入聊天室！`);
+        appendWelcome(msgObj.payload.name, msgObj.payload.avatar);
       } else if (msgObj.type === 'notification') {
         appendNotification(`系統：${msgObj.payload.message}`);
       } else if (msgObj.type === 'chat') {
-        appendChat(msgObj.payload.from, msgObj.payload.text);
+        appendChat(msgObj.payload.from, msgObj.payload.text, msgObj.payload.avatar);
       }
     };
 
@@ -111,18 +126,44 @@
       if (e.key === 'Enter') sendBtn.click();
     });
 
-    function appendChat(from, text) {
+    // 顯示一般聊天訊息，含頭像
+    function appendChat(from, text, avatar) {
       const div = document.createElement('div');
       div.classList.add('message');
-      div.innerHTML = `<span class="from">${from}：</span><span class="text">${text}</span>`;
+      let imgTag = '';
+      if (avatar) {
+        imgTag = `<img src="${avatar}" alt="avatar">`;
+      }
+      div.innerHTML = `
+        ${imgTag}
+        <span class="from">${from}：</span>
+        <span class="text">${text}</span>
+      `;
       chatContainer.appendChild(div);
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
+    // 顯示系統通知
     function appendNotification(text) {
       const div = document.createElement('div');
       div.classList.add('notification');
       div.textContent = text;
+      chatContainer.appendChild(div);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    // 顯示歡迎訊息，含頭像
+    function appendWelcome(name, avatar) {
+      const div = document.createElement('div');
+      div.classList.add('welcome');
+      let imgTag = '';
+      if (avatar) {
+        imgTag = `<img src="${avatar}" alt="avatar">`;
+      }
+      div.innerHTML = `
+        ${imgTag}
+        <span> ${name} 加入了聊天室！</span>
+      `;
       chatContainer.appendChild(div);
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
